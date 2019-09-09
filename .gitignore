@@ -1,3 +1,9 @@
+# Ignore the binary file filter_by_FATHMM
+filter_by_FATHMM
+
+# Vim temporary files
+*.swp
+
 # Prerequisites
 *.d
 
