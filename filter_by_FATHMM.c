@@ -10,40 +10,71 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
+#include<getopt.h>
+#include<ctype.h>
 #include"fathmm.h"
 
 
 int main(int argc, char *argv[]){
-    char ch;
-    int exit = 0;
+    char c;
     FILE *vcf;
     const int LONGEST_LINE = 9000;
     char line[LONGEST_LINE];
-    float float_score;
     float fathmm;
     float min_FATHMM = 0.7;
+    char *sflag = NULL;
+    int hflag = 0;
+    int aflag = 0;
+    int bflag = 0;
+    char *cvalue = NULL;
+    float functional_score = 0.7;
+
     /* Help string */
     char help[] = "Usage: filter_by_FATHMM  [OPTION]... VCF_file\n  "
         "-s\tFunctional scores for individual mutations from FATHMM-MKL to pass the filter (>= 0.7)\n  "
         "-h\tshow help options";
 
-    /* Options section */
-    while ((ch = getopt(argc, argv, "sh")) != EOF) {
-        switch (ch) {
-            case 's':
-                break;
+    while ((c = getopt (argc, argv, "hs:")) != -1)
+        switch (c) {
             case 'h':
-                exit = 1;
+                hflag = 1;
                 puts(help);
-                return 0;
+                break;
+            case 's':
+                sflag = optarg;
+                break;
+            case '?':
+                if (optopt == 's')
+                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint(optopt))
+                    fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+                return 1;
             default:
-                return -1;
+                abort();
         }
+
+    if (sflag != NULL) {
+        functional_score = atof(sflag);
+    } else {
+        functional_score = 0.7;
+    }
+
+    if (functional_score == 0) {
+        fprintf(stderr, "Not a numeric value for -s option\n");
+        return -1;
+    }
+
+
+    if (functional_score >= 1 || functional_score <= 0) {
+        fprintf(stderr, "The -s option cannot be <= 0  and >= 1\n");
+        return -1;
     }
 
     argc -= optind;
     argv += optind;
-    /* Options end */
+
 
     /* Check if there is a VCF file argument */
     if (argc < 1) {
@@ -51,7 +82,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    /* If the VCF file is not present */
+    /*If the VCF file is not present */
     if (!(vcf = fopen(argv[0], "r"))) {
         fprintf(stderr, "Coud not find file: %s\n", argv[0]);
         return 1;
@@ -64,7 +95,7 @@ int main(int argc, char *argv[]){
             printf("%s", line);
         } else {
             fathmm = dbNSFP_FATHMM(line);
-            if (fathmm >= min_FATHMM)
+            if (fathmm >= functional_score)
                 fprintf(stdout, "%s", line);
         }
     }
