@@ -18,8 +18,9 @@
 int main(int argc, char *argv[]){
     char c;
     FILE *vcf;
-    const int LONGEST_LINE = 9000;
-    char line[LONGEST_LINE];
+    char *line;
+    size_t len = 0;
+    ssize_t read;
     float fathmm;
     float min_FATHMM = 0.7;
     char *sflag = NULL;
@@ -79,7 +80,7 @@ int main(int argc, char *argv[]){
     /* Check if there is a VCF file argument */
     if (argc < 1) {
         fprintf(stderr, "VCF file name not specified\n");
-        return 1;
+        return -1;
     }
 
     /*If the VCF file is not present */
@@ -90,14 +91,19 @@ int main(int argc, char *argv[]){
 
 
     /* Working part */
-    while (fgets(line, LONGEST_LINE, vcf) != NULL){
+    while ((read = getline(&line, &len, vcf) ) != -1) {
         if (line[0] == '#') {
             printf("%s", line);
         } else {
             fathmm = dbNSFP_FATHMM(line);
-            if (fathmm >= functional_score)
+            if (fathmm >= functional_score) {
                 fprintf(stdout, "%s", line);
+            }
         }
     }
- 
+
+    free(line);
+    fclose(vcf); 
+
+    return 0;
 }
